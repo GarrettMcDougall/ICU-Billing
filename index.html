@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<title>ICU Billing Guide</title>
+<style>
+  :root { --bg:#f4f6f8; --card:#ffffff; --ink:#15202b; --muted:#6b7885; --fav:#f5a524; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,
+         "Liberation Sans",Arial,sans-serif; background:var(--bg); color:var(--ink);
+         font-size:16px; line-height:1.3; }
+  .wrap { max-width:760px; margin:0 auto; padding:0 12px 60px; }
+
+  header { position:sticky; top:0; z-index:20; background:var(--bg);
+           padding:12px 12px 8px; margin:0 -12px; }
+  h1 { font-size:18px; margin:0 0 8px; }
+
+  .search { width:100%; padding:11px 14px; font-size:16px; border:1.5px solid #d5dde4;
+            border-radius:10px; background:#fff; outline:none; }
+  .search:focus { border-color:#0ea5e9; box-shadow:0 0 0 3px #0ea5e922; }
+
+  .nav { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin:10px 0 4px; }
+  @media(min-width:560px) { .nav { grid-template-columns:repeat(4,1fr); } }
+  .navchip { display:flex; align-items:center; gap:5px; text-decoration:none;
+             color:var(--ink); background:#fff; border:1px solid #e3e9ef;
+             border-left:4px solid var(--c); border-radius:7px; padding:6px 7px;
+             font-size:11px; font-weight:600; line-height:1.15; }
+  .navchip:active { background:#eef2f6; }
+  .navchip-fav { font-weight:700; }
+  .navchip-upd { font-weight:700; }
+  .navdot { width:7px; height:7px; border-radius:50%; background:var(--c); flex:none; }
+
+  section { margin-top:16px; scroll-margin-top:var(--hoff, 230px); }
+  .secban { display:flex; align-items:center; gap:9px; font-size:15px; font-weight:800;
+            background:#eef2f6;
+            background:color-mix(in srgb, var(--c) 14%, #fff);
+            border:1px solid #e3e9ef;
+            border:1px solid color-mix(in srgb, var(--c) 30%, #fff);
+            border-left:6px solid var(--c);
+            padding:9px 12px; border-radius:9px; }
+  .bandot { width:11px; height:11px; border-radius:50%; background:var(--c); flex:none; }
+  .top { margin-left:auto; font-size:11px; font-weight:600; color:var(--muted); text-decoration:none; }
+  .fav-clear { margin-left:auto; font-size:11px; font-weight:600; color:#b42318; background:none;
+               border:1px solid #f0c9c4; border-radius:6px; padding:3px 9px; cursor:pointer; }
+  .fav-clear:active { background:#fdf1f0; }
+  .fav-clear.hidden { display:none !important; }
+  .secban .fav-clear + .top { margin-left:8px; }
+  .rows { margin-top:4px; }
+
+  .sub { font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
+         color:var(--muted); padding:9px 6px 3px; }
+  .note { font-size:11.5px; font-style:italic; color:#c00000; padding:5px 6px; }
+  .info { font-size:11.5px; color:#33404c; background:#f7fafc; border:1px solid #e5ebf1;
+          border-radius:7px; padding:8px 10px; margin:6px 0; line-height:1.5; }
+
+  .row { display:flex; align-items:center; gap:7px; background:#fff;
+         border-bottom:1px solid #eef1f4; border-left:6px solid var(--c);
+         padding:10px 12px 10px 8px; }
+  .row.has-info { border-bottom:none; border-radius:0; }
+  .code { font-size:16px; font-weight:800; min-width:56px; letter-spacing:.3px; }
+  .desc { flex:1; font-size:13.5px; color:#33404c; }
+  .price { font-size:15px; font-weight:800; color:#0b7a4b; white-space:nowrap; }
+  .price.sob { font-size:11px; font-weight:700; color:var(--muted); background:#eef2f6;
+               border-radius:5px; padding:2px 7px; }
+  .new { display:inline-block; font-size:9px; font-weight:800; color:#0a8a4f;
+         background:#d9f7e6; border-radius:4px; padding:1px 5px; margin-left:6px;
+         vertical-align:middle; letter-spacing:.3px; }
+
+  .star { border:none; background:none; font-size:20px; line-height:1; cursor:pointer;
+          color:#c7ced6; padding:0 2px; flex:none; width:26px; }
+  .star.on { color:var(--fav); }
+
+  /* ---- Info (i) buttons + dropdown panels ---- */
+  .info-btn { border:1.5px solid #d5dde4; background:#fff; color:var(--muted);
+              width:19px; height:19px; border-radius:50%; font-size:11px; font-weight:800;
+              cursor:pointer; flex:none; display:inline-flex; align-items:center;
+              justify-content:center; padding:0; line-height:1; font-style:italic;
+              font-family:Georgia,"Times New Roman",serif; }
+  .info-btn.open { background:var(--c); border-color:var(--c); color:#fff; }
+  .info-panel { display:none; font-size:12px; color:#33404c; background:#f7fafc;
+                border:1px solid #e5ebf1; border-top:none; border-left:6px solid var(--c);
+                border-radius:0 0 8px 8px; padding:9px 12px 11px; margin:0 0 4px;
+                line-height:1.55; }
+  .info-panel.open { display:block; }
+  .info-panel.hidden { display:none !important; }
+
+  .srch { display:none; }
+  body.searching .srch { display:flex; }
+
+  .hidden { display:none !important; }
+  .noresult { text-align:center; color:var(--muted); padding:30px 10px; font-size:14px; }
+  .fav-empty { font-size:13px; color:var(--muted); font-style:italic; padding:12px 8px; }
+
+  /* ---- Specialty toggle ---- */
+  .spec-wrap { padding:2px 2px 10px; }
+  .spec-lbl { display:block; font-size:11px; font-weight:700; text-transform:uppercase;
+              letter-spacing:.3px; color:var(--muted); margin-bottom:6px; }
+  .spec-hint { font-size:11px; color:var(--muted); margin-top:7px; line-height:1.45; }
+
+  /* ---- Shared segmented-control / chip styling (specialty toggle + sedation calc) ---- */
+  .seg, .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .seg button, .chips button { font-size:13px; font-weight:600; padding:8px 11px;
+             border:1.5px solid #d5dde4; background:#fff; color:#33404c; border-radius:8px;
+             cursor:pointer; }
+  .seg button.on { background:var(--c); border-color:var(--c); color:#fff; }
+  .chips button.on { background:#0b7a4b; border-color:#0b7a4b; color:#fff; }
+
+  /* ---- Sedation calculator ---- */
+  .calc { background:#fff; border:1px solid #e3e9ef; border-left:6px solid var(--c);
+          border-radius:9px; padding:12px 12px 14px; margin-top:4px; }
+  .calc-h { font-size:14px; font-weight:800; margin-bottom:10px; }
+  .calc-row { display:block; margin:10px 0; }
+  .calc-lbl { display:block; font-size:11px; font-weight:700; text-transform:uppercase;
+              letter-spacing:.3px; color:var(--muted); margin-bottom:5px; }
+  .calc-in { width:100%; padding:9px 11px; font-size:16px; border:1.5px solid #d5dde4;
+             border-radius:8px; outline:none; }
+  .calc-in:focus { border-color:var(--c); box-shadow:0 0 0 3px color-mix(in srgb, var(--c) 15%, transparent); }
+  .ac-wrap { position:relative; }
+  .ac-list { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:30;
+             background:#fff; border:1px solid #d5dde4; border-radius:8px; overflow:hidden;
+             box-shadow:0 6px 18px rgba(0,0,0,.12); display:none; max-height:230px; overflow-y:auto; }
+  .ac-list.on { display:block; }
+  .ac-item { display:flex; align-items:center; gap:9px; padding:9px 11px; cursor:pointer;
+             border-bottom:1px solid #f0f3f6; }
+  .ac-item:last-child { border-bottom:none; }
+  .ac-item.active, .ac-item:active { background:color-mix(in srgb, var(--c) 12%, transparent); }
+  .ac-item .acc { font-weight:800; min-width:52px; color:var(--c); }
+  .ac-item .acd { font-size:13px; color:#33404c; }
+  .ac-none { padding:9px 11px; color:var(--muted); font-size:13px; }
+  #c-proc-picked.set { color:#0b7a4b; font-weight:600; }
+  .calc-hint { font-size:11px; color:var(--muted); margin:-4px 0 8px; }
+  .calc-out { margin-top:12px; background:#f7fafc; border:1px solid #e5ebf1;
+              border-radius:8px; padding:11px 12px; font-size:14px; min-height:44px; }
+  .calc-out .line { display:flex; justify-content:space-between; gap:10px; padding:3px 0;
+                    border-bottom:1px solid #eef1f4; }
+  .calc-out .line:last-child { border-bottom:none; }
+  .calc-out .cc { font-weight:800; }
+  .calc-out .cu { color:var(--muted); font-size:12px; }
+  .calc-out .tot { font-weight:800; margin-top:6px; }
+  .calc-out .warn { color:#b42318; font-size:12px; margin-top:6px; }
+  .calc-copy { margin-top:10px; width:100%; padding:10px; font-size:14px; font-weight:700;
+               border:none; border-radius:8px; background:#153d64; color:#fff; cursor:pointer; }
+  .calc-copy.done { background:#0b7a4b; }
+
+  .upd-card { background:#fff; border:1px solid #e3e9ef; border-left:6px solid #0891b2;
+              border-radius:9px; padding:14px 14px 16px; margin-top:4px; text-align:center; }
+  #forcerefresh { display:inline-flex; align-items:center; gap:6px; font-size:14px;
+            font-weight:700; color:#153d64; background:#fff; border:1.5px solid #153d64;
+            border-radius:9px; padding:10px 18px; cursor:pointer; margin:4px auto 10px;
+            box-shadow:0 1px 2px rgba(0,0,0,.06); }
+  #forcerefresh:active { background:#153d64; color:#fff; }
+  #forcerefresh.done { background:#0b7a4b; border-color:#0b7a4b; color:#fff; }
+  #forcerefresh.checking { opacity:.7; }
+  .upd-meta { font-size:12px; color:var(--muted); line-height:1.45; }
+  #updbar { position:fixed; left:0; right:0; bottom:0; z-index:50; background:#153d64;
+            color:#fff; font-size:13px; text-align:center; padding:10px 12px; }
+  #updbar button { margin-left:8px; font-size:13px; font-weight:700; padding:6px 12px;
+            border:none; border-radius:7px; background:#f5a524; color:#15202b; cursor:pointer; }
+
+  .footmeta { font-size:10.5px; color:var(--muted); font-style:italic; }
+  footer { margin-top:26px; text-align:center; display:flex; flex-direction:column; align-items:center; }
+</style></head>
+<body>
+<a id="top"></a>
+<div class="wrap">
+  <header>
+    <h1>ICU Billing Guide</h1>
+    <input class="search" id="q" type="text" inputmode="search"
+           placeholder="Search code or description…" autocomplete="off">
+    <nav class="nav" id="nav"></nav>
+  </header>
+  <div id="content"></div>
+  <div class="noresult hidden" id="noresult">No matches.</div>
+  <footer>
+    <div class="footmeta">Ontario Schedule of Benefits, amendment effective March 3, 2025 (Amd 12 Draft 1) · Critical Care (Sect. J), Hospital &amp; Institutional Consultations/Assessments (GP40-GP48), Special Visit Premiums (GP65-GP78) · verify against your latest schedule before billing · <span id="verstamp">v2026-08-06a</span></div>
+  </footer>
+</div>
+
+<script>
+// ------------------------------------------------------------------
+// ICU / CCU billing data — dollar figures sourced directly from the OHIP Schedule of
+// Benefits (amendment effective March 3, 2025) unless noted otherwise. Where a figure
+// could not be confirmed, the row shows a muted "SOB" tag instead of a guessed number.
+// ------------------------------------------------------------------
+
+// Base-specialty consultation & assessment tables (used by the Consult/Assess section).
+var SPECIALTIES = {
+  em: {
+    label: 'Emergency Medicine',
+    rows: [
+      { sub: 'Consultation while on duty in the ED (H-prefix)' },
+      { code: 'H055', desc: 'Consultation — FRCP Emergency Medicine specialist route', price: '$125.65' },
+      { code: 'H065', desc: 'Consultation in Emergency Medicine — GP/CCFP-EM route', price: '$95.60' },
+      { code: 'H105', desc: 'In-patient interim admission orders', price: '$29.05' },
+      { note: 'H055/H065 apply only when the physician is on duty in the ED for that shift; the SOB directs "all other consultations and visits" (i.e. ICU rounding) to the Family Practice & Practice In General listing below.' },
+      { sub: 'Other in-hospital services (Family Practice & Practice In General listing)' },
+      { code: 'A005', desc: 'Consultation', price: '$95.60' },
+      { code: 'C005', desc: 'Consultation (in-patient)', price: '$95.60' },
+      { code: 'A003', desc: 'General assessment', price: '$95.60' },
+      { code: 'C003', desc: 'General assessment (in-patient)', price: '$89.65' },
+      { code: 'A004', desc: 'General re-assessment', price: '$39.35' },
+      { code: 'C004', desc: 'General re-assessment (in-patient)', price: '$38.35' },
+      { code: 'A007', desc: 'Intermediate assessment', price: '$44.55' },
+      { code: 'A001', desc: 'Minor assessment', price: '$26.80' },
+      { code: 'A008', desc: 'Mini assessment', price: '$13.40' },
+      { code: 'A933', desc: 'On-call admission assessment', price: '$82.00' },
+      { code: 'C933', desc: 'On-call admission assessment (in-patient)', price: '$82.00' },
+      { sub: 'Concurrent care' },
+      { code: 'C008', desc: 'Concurrent care — Family Practice listing', price: '$40.05',
+        moreInfo: 'For a consultant who continues to follow a patient at another physician\'s request after their first major assessment, while that physician remains MRP. Capped at 4 visits/week in the first week of concurrent care, 2/week thereafter.' }
+    ]
+  },
+  im: {
+    label: 'Internal Medicine',
+    rows: [
+      { sub: 'Consultation — outpatient / ED referral (A-prefix)' },
+      { code: 'A135', desc: 'Consultation', price: '$192.85' },
+      { code: 'A130', desc: 'Comprehensive consultation (≥75 min direct contact — record start/stop times)', price: '$342.25' },
+      { code: 'A435', desc: 'Limited consultation', price: '$123.10' },
+      { code: 'A136', desc: 'Repeat consultation (same dx, max 1/12mo)', price: '$123.10' },
+      { sub: 'Assessment — outpatient (A-prefix)' },
+      { code: 'A133', desc: 'Medical specific assessment', price: '$95.95' },
+      { code: 'A134', desc: 'Medical specific re-assessment', price: '$72.00' },
+      { code: 'A131', desc: 'Complex medical specific re-assessment', price: '$83.40' },
+      { code: 'A138', desc: 'Partial assessment', price: '$44.75' },
+      { sub: 'Consultation — in-patient (C-prefix)' },
+      { code: 'C135', desc: 'Consultation', price: '$192.85' },
+      { code: 'C130', desc: 'Comprehensive consultation (≥75 min direct contact)', price: '$342.25' },
+      { code: 'C435', desc: 'Limited consultation', price: '$123.10' },
+      { code: 'C136', desc: 'Repeat consultation', price: '$123.10' },
+      { sub: 'Assessment — in-patient (C-prefix)' },
+      { code: 'C133', desc: 'Medical specific assessment', price: '$95.95' },
+      { code: 'C134', desc: 'Medical specific re-assessment', price: '$72.00' },
+      { code: 'C131', desc: 'Complex medical specific re-assessment', price: '$83.40' },
+      { sub: 'Concurrent care' },
+      { code: 'C138', desc: 'Concurrent care', price: '$40.05',
+        moreInfo: 'For a consultant who continues to follow a patient at another physician\'s request after their first major assessment, while that physician remains MRP. Capped at 4 visits/week in the first week of concurrent care, 2/week thereafter.' }
+    ]
+  },
+  anes: {
+    label: 'Anesthesiology',
+    rows: [
+      { sub: 'Consultation — outpatient (A-prefix)' },
+      { code: 'A015', desc: 'Consultation', price: '$109.70' },
+      { code: 'A016', desc: 'Repeat consultation', price: '$52.15' },
+      { code: 'A210', desc: 'Special anaesthetic consultation (≥50 min direct contact — record start/stop times)', price: '$163.20' },
+      { code: 'A215', desc: 'Limited consultation for acute pain management (in association with special visit to hospital in-patient)', price: '$69.75' },
+      { code: 'A013', desc: 'Specific assessment', price: '$64.65' },
+      { code: 'A014', desc: 'Partial assessment', price: '$31.45' },
+      { sub: 'Consultation / assessment — in-patient (C-prefix)' },
+      { code: 'C015', desc: 'Consultation — subject to same conditions as A015', price: '$109.70' },
+      { code: 'C016', desc: 'Repeat consultation', price: '$52.15' },
+      { code: 'C210', desc: 'Special anaesthetic consultation — subject to same conditions as A210', price: '$163.20' },
+      { code: 'C215', desc: 'Limited consultation for acute pain management — subject to same conditions as A215', price: '$69.75' },
+      { code: 'C013', desc: 'Specific assessment', price: '$64.65' },
+      { code: 'C014', desc: 'Specific re-assessment', price: '$28.00' },
+      { sub: 'Concurrent care' },
+      { code: 'C018', desc: 'Concurrent care', price: '$31.70',
+        moreInfo: 'For a consultant who continues to follow a patient at another physician\'s request after their first major assessment, while that physician remains MRP. Capped at 4 visits/week in the first week of concurrent care, 2/week thereafter.' }
+    ]
+  }
+};
+var SPECIALTY_ORDER = ['em', 'im', 'anes'];
+var SPEC_KEY = 'icubill_specialty_v1';
+var DEFAULT_SPECIALTY = 'em';
+
+var SECTIONS = [
+  {
+    id: 'perdiem', label: 'Per Diem / Team Fees', color: '#16a34a',
+    items: [
+      { info: 'Most responsible physician (usually the intensivist/internist) bills one daily per-diem code. Per Schedule Section J, the per-diem formula is claimed "as if there was only one physician-in-charge," even if that role changes hands during treatment — the daily fees are team fees. Other physicians\' Critical Care / Comprehensive Care claims the same day are adjudicated on an "Independent Consideration" basis rather than paid automatically. Tap the (i) on G400, G405, or G557 below to see what is included in per-diem bundle.' },
+      { sub: 'Critical Care per diem' },
+      { code: 'G400', desc: '1st day', price: '$223.10',
+        moreInfo: '🔒 Bundles: initial consult/assessment, subsequent ICU management, emergency resuscitation, peripheral IV access, central venous access (incl. G269), arterial catheter insertion (incl. G268), intraosseous access (incl. G270), CVP catheter insertion, urinary catheterization, NG intubation ± anesthesia, pressure-infusion systems, pharmacologic agent administration/management, lab-test interpretation, oximetry/blood-gas interpretation, and ICP-monitor INTERPRETATION (not insertion of the device itself). Don\'t bill these separately alongside this per diem.' },
+      { code: 'G401', desc: '2nd–30th day', price: '$146.45' },
+      { code: 'G402', desc: '31st day onward', price: '$58.60' },
+      { sub: 'Ventilatory Care per diem' },
+      { code: 'G405', desc: '1st day', price: '$183.80',
+        moreInfo: '🔒 Bundles: initial consult/assessment, endotracheal intubation (incl. G211), invasive ventilation, routine vent management, arterial and CVP lines, tracheal toilet, respiratory-support measures, and blood gases/oximetry. Don\'t bill these separately alongside this per diem.' },
+      { code: 'G406', desc: '2nd–30th day', price: '$96.45' },
+      { code: 'G407', desc: '31st day onward', price: '$64.20' },
+      { sub: 'Comprehensive Care per diem' },
+      { code: 'G557', desc: '1st day', price: '$429.30',
+        moreInfo: '🔒 Bundles everything in Critical Care AND Ventilatory Support, plus: defibrillation and cardioversion (incl. Z437). Don\'t bill these separately alongside this per diem.' },
+      { code: 'G558', desc: '2nd–30th day', price: '$256.25' },
+      { code: 'G559', desc: '31st day onward', price: '$122.80' },
+      { note: 'If the patient is discharged from the unit for more than 48 hours and re-admitted, the 1st-day rate applies again on re-admission. Fees are not claimable for stabilized patients or those in the unit purely for monitoring/observation.' }
+    ]
+  },
+  {
+    id: 'crit', label: 'Critical Care (FFS)', color: '#ef4444',
+    items: [
+      { info: 'Life threatening critical care and other critical care are fee-for-service, per-¼-hour codes — payable to the first 3 physicians on a patient (4th+ physician bills G391). Time must be physician time fully devoted to that patient; the physician cannot bill for other patients during the claimed time. NOT payable same day, same patient, same physician as a Critical Care, Ventilatory Support, Comprehensive Care, or NICU per-diem fee.' },
+      { sub: 'Life-threatening (organ failure / resus)' },
+      { code: 'G521', desc: 'First 15 min', price: '$125.10' },
+      { code: 'G523', desc: '2nd 15 min', price: '$64.50' },
+      { code: 'G522', desc: 'Every 15 min after first ½h', price: '$42.50' },
+      { code: 'G391', desc: '4th+ physician, per 15 min', price: '$34.35' },
+      { sub: 'Other critical care (resus, threat to life/limb)' },
+      { code: 'G395', desc: 'First 15 min', price: '$64.70' },
+      { code: 'G391', desc: 'After first 15 min, per 15 min', price: '$34.35' },
+      { note: 'Start/stop times must be recorded. G395 not payable with G521/G522/G523 same pt, same MD, same day. Consultations/assessments before or after either service are separately billable FFS — but not when a Critical/Ventilatory/Comprehensive/NICU per-diem is being claimed.' }
+    ]
+  },
+  {
+    id: 'assess', label: 'Consult / Assess', color: '#0ea5e9',
+    items: [
+      { specialtyToggle: true },
+      { info: 'Consultations require a referral from a physician or NP and are generally once per 12-month period per diagnosis. A general/medical-specific assessment involves less time than a consultation and doesn\'t require a referral.' }
+    ]
+  },
+  {
+    id: 'proc', label: 'Procedures', color: '#f59e0b',
+    items: [
+      { info: '⚠️ The codes marked "bundled" below are included in the Critical/Ventilatory/Comprehensive Care per diem — do not bill them separately from the SAME physician on a day that physician is also billing the per diem for that patient. They ARE billable on their own (e.g. before critical-care status starts, on a non-per-diem day, or by a different physician) — see Per Diem / Team Fees for the full breakdown.' },
+      { sub: '⚠️ Lines & access — bundled into the per diem when billing it' },
+      { code: 'G268', desc: 'Arterial line', price: '$31.25',
+        moreInfo: 'Bundled into Critical Care AND Ventilatory Support per diems. Only separately billable if you are NOT also billing a per diem for this patient that day.' },
+      { code: 'G269', desc: 'Central line', price: '$31.25',
+        moreInfo: 'Bundled into Critical Care per diem (as CVP catheter insertion) and into Ventilatory Support per diem (as arterial/CVP lines). Only separately billable if you are NOT also billing a per diem for this patient that day.' },
+      { code: 'G270', desc: 'IO (intraosseous line)', price: '$23.90',
+        moreInfo: 'Bundled into Critical Care and Comprehensive Care per diems (as intraosseous infusion). Only separately billable if you are NOT also billing a per diem for this patient that day.' },
+      { code: 'Z459', desc: 'Arterial puncture for blood gas', price: '$10.20',
+        moreInfo: 'Blood-gas interpretation is bundled into all three per-diem types. Only separately billable if you are NOT also billing a per diem for this patient that day.' },
+      { sub: '⚠️ Airway / resuscitation — bundled into the per diem when billing it' },
+      { code: 'G211', desc: 'Endotracheal intubation', price: '$38.35',
+        moreInfo: 'Bundled into Ventilatory Support AND Comprehensive Care per diems. Only separately billable if you are NOT also billing one of those per diems for this patient that day (Critical Care alone, without ventilatory/comprehensive, does not explicitly bundle intubation).' },
+      { code: 'G115', desc: 'External (transcutaneous) pacing — once per 24h', price: '$46.30',
+        moreInfo: 'Once per 24-hour period. NOT eligible for payment with G521, G522, G523, G395, or G391 (the FFS critical care codes) — same restriction as everything else critical-care-adjacent.' },
+      { code: 'G303', desc: 'Transcutaneous/transthoracic pacemaker insertion', price: '$51.25',
+        moreInfo: 'Not clearly addressed in the per-diem definitions either way. Comprehensive Care bundles "usual resuscitative measures," which arguably could include this — treat as needing case-by-case review rather than assuming it stacks automatically on a per diem.' },
+      { code: 'Z437', desc: 'Cardioversion (G3 only, not G5)', price: '$92.45',
+        moreInfo: 'Bundled into Comprehensive Care per diem specifically (explicitly named: "defibrillation, cardioversion"). NOT explicitly bundled into Critical Care or Ventilatory Support alone — so it may still be separately billable alongside G400 or G405 specifically, just not G557. Also not payable same-day as FFS life-threatening critical care (G521 etc.), which separately bundles defibrillation/cardioversion.' },
+      { sub: 'Drainage / aspiration — genuinely separate (not in any per-diem bundle)' },
+      { code: 'Z341', desc: 'Chest tube — insertion (tube thoracostomy)', price: '$76.80',
+        moreInfo: 'There is no separate "replacement" code in the Schedule. Swapping a chest tube for a new one is billed as a fresh Z341 insertion. Z363 (removal, below) is NOT payable for the same patient on the same day as Z341 — so a same-day tube exchange is billed as Z341 alone.' },
+      { code: 'Z363', desc: 'Chest tube — removal', price: '$20.00',
+        moreInfo: 'Removal of a thoracostomy tube once it\'s no longer needed. Not payable the same day as a Z341 insertion for the same patient (see the Z341 note for same-day tube exchanges).' },
+      { code: 'Z331', desc: 'Thoracentesis — diagnostic sample only', price: '$37.35',
+        moreInfo: 'Use this instead of Z332 when you\'re aspirating purely for a diagnostic sample, with no therapeutic drainage intent.' },
+      { code: 'Z332', desc: 'Thoracentesis — therapeutic drainage, ± diagnostic sample', price: '$104.40',
+        moreInfo: 'The higher-paying code — use when there\'s a therapeutic drainage component, even if you\'re also sending a diagnostic sample. If it\'s diagnostic-only, use Z331 instead.' },
+      { code: 'Z361', desc: 'Insertion of chronic indwelling pleural catheter (malignant effusion)', price: '$200.00' },
+      { code: 'Z362', desc: 'Removal of chronic indwelling pleural catheter', price: '$200.00' },
+      { code: 'Z339', desc: 'Intercostal drainage with instillation of sclerosing agent, under general anesthesia', price: '$182.90' },
+      { code: 'M137', desc: 'Thoracotomy, ± biopsy', price: '$390.65',
+        moreInfo: 'Relevant to resuscitative thoracotomy in the ICU/trauma-bay setting, when all of the code\'s requirements are met — this is a substantial surgical procedure code, not a routine bedside billing.' },
+      { code: 'Z590', desc: 'Paracentesis, diagnostic', price: '$31.30' },
+      { code: 'Z591', desc: 'Paracentesis, therapeutic', price: '$57.65' },
+      { code: 'Z401', desc: 'Pericardiocentesis', price: '$131.70' },
+      { code: 'Z804', desc: 'Lumbar puncture', price: '$150.00' },
+      { sub: 'GI' },
+      { code: 'G356', desc: 'Gastric lavage — therapeutic', price: '$33.80',
+        moreInfo: 'NG intubation itself is bundled into all three per-diem types. If this lavage is essentially routine NG placement/management captured by that bundled service, it may not be separately billable alongside a per diem — reserve this code for a genuinely distinct lavage procedure.' },
+      { code: 'G355', desc: 'Gastric lavage — diagnostic', price: '$9.60' }
+    ]
+  },
+  {
+    id: 'procext', label: 'Specialized ICU Procedures', color: '#0d9488',
+    items: [
+      { sub: 'Bronchoscopy' },
+      { code: 'Z327', desc: 'Flexible or rigid bronchoscopy, ± bronchial biopsy, suction, or contrast injection', price: '$124.90',
+        moreInfo: 'The base bedside diagnostic/therapeutic bronch code for an intensivist — airway inspection, suctioning, biopsy, or contrast injection. Add-on codes (E636, E838) ride on top of this base code.' },
+      { code: 'E636', desc: 'Broncho-alveolar lavage for dx of malignancy or dx/tx of infection, add to Z327', price: '$50.00',
+        moreInfo: 'The BAL add-on — appropriate when you\'re sending lavage fluid for VAP workup or infection diagnosis/treatment, not just suctioning. Must be billed as an add-on to Z327, not standalone.' },
+      { code: 'E838', desc: 'Bronchoscopy in a high-risk patient with respiratory failure (severe hypoxemia/hypercapnia), add to Z327', price: '$79.40',
+        moreInfo: 'For a genuinely high-risk bronch — severe hypoxemia or hypercapnia. Payment condition: you must remain with the patient after the procedure until oxygen levels return to pre-procedure baseline and it\'s clear they won\'t need assisted ventilation. Document that explicitly.' },
+      { code: 'Z359', desc: 'Repeat bronchoscopy for tracheobronchial toilet, within 1 week of another bronchoscopic procedure', price: '$56.65',
+        moreInfo: 'The lower-fee code for a repeat "toilet" bronch (secretion clearance) done within a week of a prior bronchoscopy on the same patient — common for ICU patients needing serial airway clearance. Routine blind suctioning/tracheal toilet without a scope is bundled into ventilatory/comprehensive care — don\'t bill this for that.' },
+      { code: 'Z342', desc: 'Limited bronchoscopy with placement of endobronchial blocker and/or double-lumen tube', price: '$112.55',
+        moreInfo: 'For lung-isolation procedures — placing a bronchial blocker or confirming/adjusting a double-lumen tube position, e.g. for differential lung ventilation or to control a hemorrhage/air leak source.' },
+      { code: 'Z360', desc: 'Emergency rigid bronchoscopy for obstructed airway', price: '$474.65',
+        moreInfo: 'Reserved for genuine life-threatening emergencies where the patient is NOT intubated. No other bronchoscopy code payable same visit. NOT payable in addition to Life Threatening/Other Critical Care (G521-G523/G391/G395) to the same physician, same patient, same day.' },
+      { sub: 'Temporary transvenous pacing' },
+      { code: 'Z443', desc: 'Insertion of temporary endocardial (transvenous pacing) electrode', price: '$154.10',
+        moreInfo: 'The bedside temporary transvenous pacing wire insertion — distinct from G115 (transcutaneous/transthoracic pacing pads) and from the permanent-pacemaker codes (Z435/Z444/etc., not ICU bedside procedures).' },
+      { code: 'Z431', desc: 'Repositioning of temporary endocardial electrode', price: '$64.25',
+        moreInfo: 'For when a temporary pacing wire needs repositioning after initial placement — e.g. loss of capture or sensing on the ward/ICU.' },
+      { sub: 'Tracheostomy' },
+      { code: 'Z741', desc: 'Tracheotomy (incl. bedside percutaneous dilatational)', price: '$273.15',
+        moreInfo: 'The general tracheotomy code — this is what a bedside percutaneous dilatational tracheostomy (PDT) is billed as, since the Schedule doesn\'t carve out a separate percutaneous-specific code. Explicitly does NOT include cricothyroidotomy or other emergency airway punctures (see Z325 below for the true emergency scenario).' },
+      { code: 'Z325', desc: 'Emergency tracheotomy', price: '$474.65',
+        moreInfo: 'Only for genuine life-threatening emergencies where the patient is NOT intubated. Percutaneous tracheostomy, cricothyroidotomy, or other emergency airway punctures do NOT constitute Z325 — an elective/semi-elective bedside ICU trach on an already-intubated patient is Z741, not this code.' },
+      { code: 'Z326', desc: 'Change of tracheostomy tube', price: '$12.50',
+        moreInfo: 'Routine trach tube exchange — the common recurring ICU/step-down code.' },
+      { code: 'Z346', desc: 'Transtracheal aspiration', price: '$22.35' },
+      { code: 'Z356', desc: 'Closure of persistent tracheostoma', price: '$133.95' },
+      { code: 'Z738', desc: 'Insertion of Montgomery "T" tube or similar laryngeal/tracheal stent', price: '$216.10' },
+      { sub: 'Cardiovascular' },
+      { code: 'Z438', desc: 'Insertion of Swan-Ganz (pulmonary artery) catheter', price: '$162.50',
+        moreInfo: 'The Schedule explicitly states this is "not included in anaesthetic, respiratory or critical care benefits" — genuinely separate from all three per-diem types, unlike arterial/central lines. Includes dye-dilution densitometry and/or thermal-dilution studies when rendered (outside a cath-lab setting).' },
+      { code: 'G580', desc: 'Insertion of oesophageal transducer (for TEE)', price: '$45.00',
+        moreInfo: 'Covers placing the transesophageal echo probe itself. Routine TEE interpretation without an eligible separate service isn\'t addressed here — this code is specifically for the transducer insertion.' },
+      { code: 'Z743', desc: 'Circulatory assist device (e.g. intra-aortic balloon pump) — open insertion', price: '$307.80' },
+      { code: 'Z780', desc: 'Circulatory assist device (e.g. IABP) — percutaneous insertion', price: '$219.80',
+        moreInfo: 'Both Z743 and Z780 include cannulation, repair of artery, and daily care/supervision of the device — unlike ECMO (Z788), the IABP fee bundles in ongoing daily device management, so don\'t look for a separate "daily IABP management" code.' },
+      { sub: 'Neurologic' },
+      { code: 'Z820', desc: 'Insertion of intracranial pressure monitor and/or external ventricular drain', price: '$395.85',
+        moreInfo: 'The per diem bundles ICP INTERPRETATION and assessment but explicitly EXCLUDES insertion of the measuring device — which is exactly what makes this separately billable even on a per-diem day.' },
+      { code: 'Z812', desc: 'Revision or replacement of ICP monitor/EVD, within 30 days', price: '$279.55' },
+      { sub: 'Abdominal' },
+      { code: 'G349', desc: 'Oesophageal tamponade device insertion (e.g. Blakemore/Minnesota tube)', price: '$45.30' },
+      { sub: 'ECMO' },
+      { code: 'Z788', desc: 'ECMO — cannulation and decannulation, by any method, heart/vein/artery, incl. repair of vessels if rendered', price: '$400.00',
+        moreInfo: 'This is a ONE-TIME procedural fee covering cannulation AND decannulation (i.e. it\'s claimed around each of those events, not daily). No distinct "daily ECMO management" code was found in the Schedule — ongoing day-to-day management of an ECMO patient is captured by the standard Critical Care/Comprehensive Care per diem, the same as any other critically ill ICU patient, not a separate ECMO-specific per diem.' },
+      { sub: 'Ultrasound guidance' },
+      { code: 'J149', desc: 'Ultrasonic guidance of biopsy, aspiration, or drainage procedures (one physician only)', price: '$56.45',
+        moreInfo: 'Scoped specifically to biopsy/aspiration/amniocentesis/drainage procedures (e.g. a guided paracentesis or thoracentesis) — the wording doesn\'t extend to vascular access, so guidance for a central or arterial line doesn\'t appear to have its own billable add-on beyond the line-insertion fee itself. Two pairing restrictions to know: J149 billed the same visit as J138 (intracavitary US) or J161 pays at nil, and it\'s already BUNDLED into Z804 (lumbar puncture) — don\'t bill it separately for a US-guided LP. Fee shown ($56.45) is the professional (P) component, updated for 2026; a technical (H) component of $47.30 (2025 rate — no 2026 change found) may also apply depending on your billing arrangement.' },
+      { sub: 'Other' },
+      { code: 'G210', desc: 'Therapeutic hypothermia — induction and management', price: '$190.75' },
+      { code: 'Z456', desc: 'Insertion of implantable (tunneled) central venous catheter', price: '$296.50',
+        moreInfo: 'Less commonly performed by an intensivist than a standard non-tunneled CVC, but included for completeness — e.g. a long-term access line placed for a patient with an anticipated prolonged course.' },
+      { code: 'Z457', desc: 'Surgical removal or repair of implanted/tunneled central venous catheter', price: '$60.00' },
+      { code: 'Z446', desc: 'Insertion of subcutaneous venous-access reservoir (port)', price: '$168.00' },
+      { code: 'Z447', desc: 'Revision of subcutaneous venous-access reservoir, same site', price: '$130.70' },
+      { note: 'This section covers procedures not itemized in the main Procedures list above — check there first for lines, standard airway/resuscitation codes, and routine drainage/aspiration.' }
+    ]
+  },
+  {
+    id: 'dialysis', label: 'Dialysis / CRRT', color: '#059669',
+    items: [
+      { info: 'Acute/ICU dialysis (including CRRT) is billed separately from the outpatient Chronic Dialysis Weekly Team Fee (G860-G866) — the team fee explicitly excludes "admission assessments and subsequent visits to acute care hospital in-patients" and "any other diagnostic and therapeutic procedures, including acute dialysis treatments." So a critically ill ICU patient\'s CRRT/acute HD is billed with the codes below, not folded into a chronic outpatient program\'s weekly fee.' },
+      { sub: 'CRRT (initial and acute — first 3 services of a run)' },
+      { code: 'G083', desc: 'Continuous venovenous haemodialysis (CVVHD) — initial and acute, first 3 services', price: '$397.30',
+        moreInfo: 'The standard CRRT code for a new continuous venovenous haemodialysis run — covers the first 3 services. "Haemodialysis" here is defined to include haemofiltration and haemoperfusion as well.' },
+      { code: 'G085', desc: 'Continuous venovenous haemofiltration (CVVH) — initial and acute, first 3 services', price: '$385.75' },
+      { code: 'G082', desc: 'Continuous venovenous haemodiafiltration (CVVHDF) — initial and acute, first 3 services', price: '$397.30' },
+      { code: 'G090', desc: 'Venovenous slow continuous ultrafiltration (SCUF) — initial and acute, first 3 services', price: '$331.05' },
+      { sub: 'Chronic/continuing modality codes' },
+      { code: 'G094', desc: 'Chronic, continuous haemodiafiltration', price: '$69.90',
+        moreInfo: 'The continuation rate once a haemodiafiltration run moves past the initial/acute phase covered by G082.' },
+      { code: 'G096', desc: 'Chronic, slow continuous ultrafiltration', price: '$69.90',
+        moreInfo: 'The continuation rate once a SCUF run moves past the initial/acute phase covered by G090.' },
+      { sub: 'Standard intermittent haemodialysis' },
+      { code: 'G323', desc: 'Acute, repeat haemodialysis — first 3 services', price: '$184.80',
+        moreInfo: 'For standard intermittent (non-continuous) acute HD in the ICU — e.g. a patient who\'s hemodynamically stable enough for conventional intermittent dialysis rather than CRRT.' },
+      { code: 'G325', desc: 'Haemodialysis, medical component alone', price: '$369.60' },
+      { sub: 'Dialysis catheter access & related procedures' },
+      { code: 'G324', desc: 'Subclavian or jugular dialysis-catheter insertion', price: '$102.95' },
+      { code: 'G336', desc: 'Dialysis-catheter revision', price: '$17.65' },
+      { code: 'G327', desc: 'Femoral dialysis-catheter insertion', price: '$77.30' },
+      { code: 'G312', desc: 'Thrombolytic instillation into temporary/permanent dialysis catheter', price: '$15.40' }
+    ]
+  },
+  {
+    id: 'sedation', label: 'Procedural Sedation', color: '#f43f5e',
+    items: [
+      { sedationCalc: true },
+      { sub: 'Reference — raw codes' },
+      { code: '6u', desc: 'BASE: 6u (procedure code + "C")', price: '$95.76' },
+      { code: '1u', desc: 'Add TIME to base; 15 min = 1u', price: '$15.96' },
+      { code: 'E003C', desc: 'If no code available (6u base)', price: '$95.76' },
+      { code: 'E023C', desc: 'Exam under anesthesia (6u base)', price: '$95.76' },
+      { sub: 'Extra units' },
+      { code: 'E020C', desc: 'ASA E — Emergency sedation = 4u', price: '$63.84' },
+      { code: 'E022C', desc: 'ASA III: Severe systemic = 2u', price: '$31.92' },
+      { code: 'E017C', desc: 'ASA IV: Incapacitating = 10u', price: '$159.60' },
+      { code: 'E016C', desc: 'ASA V: Moribund = 20u', price: '$319.20' },
+      { code: 'E010C', desc: 'BMI > 40 = 2u', price: '$31.92' },
+      { code: 'E011C', desc: 'Prone position = 4u', price: '$63.84' },
+      { code: 'E024C', desc: 'Semi-sit (>60°) = 4u', price: '$63.84' },
+      { sub: 'Sedation premiums' },
+      { code: 'E400C', desc: 'Weekend/Evening (1700–2400)', price: '50%' },
+      { code: 'E401C', desc: 'Night (2400–0800)', price: '75%' }
+    ]
+  },
+  {
+    id: 'counsel', label: 'Counselling / Forms', color: '#d946ef',
+    items: [
+      { sub: 'Family meetings & counselling (per unit, ½ hour or major part thereof)' },
+      { code: 'K002', desc: 'Family meeting / caregiver interview (booked, separate appt ≥20 min)', price: '$80.00',
+        moreInfo: 'For an interview with a substitute decision-maker under the Health Care Consent Act. Must be a booked, separate appointment. Not payable if the information is part of the history normally taken during a consult/assessment, or if the sole purpose of the meeting is obtaining consent.' },
+      { code: 'K015', desc: 'Counselling relatives — catastrophically/terminally ill pt', price: '$80.00',
+        moreInfo: 'Time-based counselling of relatives on behalf of a catastrophically or terminally ill patient, for one or more persons. Billed per unit (½ hour or major part thereof).' },
+      { code: 'K005', desc: 'Primary mental health care', price: '$80.00',
+        moreInfo: 'Individual primary mental health care, billed per unit. Not payable alongside another consultation/visit for the same patient on the same day unless the diagnoses are clearly different.' },
+      { code: 'K013', desc: 'Counselling — individual (first 3 units/patient/provider/12mo)', price: '$80.00',
+        moreInfo: 'Individual counselling. K013 covers the first three units (combined with K040) per patient per provider per 12-month period.' },
+      { code: 'K033', desc: 'Counselling — individual, add\'l units in same 12mo period', price: '$56.30',
+        moreInfo: 'Additional individual-counselling units beyond the K013 allotment, per patient per provider per 12-month period.' },
+      { sub: 'Organ donation' },
+      { code: 'K014', desc: 'Counselling for transplant recipients, donors, or families of recipients/donors (per unit, 1+ persons)', price: '$80.00',
+        moreInfo: 'This is the code for the donor-discussion/family conversation itself — declaration of intent to donate, discussing the donation process with next of kin, etc. It follows the same time-unit rules as other counselling codes (½ hour or major part thereof).' },
+      { note: 'No distinct "organ donor management" per-diem or FFS code was found in the Schedule. Ongoing physiologic management of a potential/actual organ donor in the ICU continues to be billed under the standard Critical Care/Comprehensive Care per diem (or FFS critical care codes) — donation status doesn\'t change which code applies to the daily management itself.' },
+      { sub: 'Case conference' },
+      { code: 'K121', desc: 'In-patient case conference (per 10 min unit)', price: '$37.05',
+        moreInfo: 'Needs the physician most responsible for the patient plus at least 2 other participants (physicians, regulated social workers, and/or regulated health professionals). Max 4 services per patient per physician per 12 months, and max 8 units per patient per physician per day. Not eligible for a long-term-care resident.' },
+      { sub: 'Palliative' },
+      { code: 'C945', desc: 'Special palliative care consultation', price: '$174.25',
+        moreInfo: '≥50 minutes of direct contact (majority spent with the patient), including a psychosocial assessment, comprehensive medication review, appropriate counselling, and consideration of community services. Record start/stop times. If the visit runs past 50 minutes, K023 can be added for the extra time.' },
+      { code: 'K023', desc: 'Palliative care support (per unit)', price: '$85.25',
+        moreInfo: 'Time-based service for pain/symptom management, emotional support, and counselling for a patient already receiving palliative care. Record start/stop times. Not payable alongside other Family Practice-listing services on the same visit, except C945.' },
+      { code: 'G512', desc: 'Palliative care case-management fee (per pt/week)', price: '$67.75',
+        moreInfo: 'Max one per patient per week (Monday–Sunday), payable only to the physician most responsible for the patient\'s care (or a substitute). Covers coordinating community/hospital palliative care. Not billable the same week as G511, K071, or K072.' },
+      { code: 'G511', desc: 'Telephone management of a palliative care patient', price: '$18.20',
+        moreInfo: 'A telephone-based management/coordination service for a patient already receiving palliative care — distinct from G512\'s weekly case-management fee. Not billable the same week as G512.' },
+      { sub: 'Death & forms' },
+      { code: 'C777', desc: 'Intermediate assessment — pronouncement of death (in-patient)', price: '$44.55' },
+      { code: 'C771', desc: 'Certification of death (in-patient)', price: '$24.20' },
+      { code: 'K038', desc: 'LTC application — completion of health report form', price: '$46.35' },
+      { code: 'K070', desc: 'Home care application', price: '$34.75' },
+      { note: 'Counselling codes need a booked, separate appointment; not payable same-day as an assessment sharing the same diagnostic code.' }
+    ]
+  },
+  {
+    id: 'criticall', label: 'CritiCall / Phone / Video', color: '#6366f1',
+    items: [
+      { sub: 'CritiCall telephone consultation' },
+      { info: 'For a telephone consult specifically ARRANGED BY CritiCall Ontario — e.g. a referring physician at a peripheral hospital calling CritiCall to find and discuss transfer/acceptance with an accepting ICU physician (consultant). Codes differ depending on whether you\'re the referring or consultant physician, and whether you\'re on duty in the ED at the time.' },
+      { code: 'K732', desc: 'CritiCall telephone consultation — referring physician', price: '$37.05',
+        moreInfo: 'Bill this if you\'re the one calling CritiCall to discuss/arrange transfer of a patient. Max 2 K732/K736 combined per patient per day.' },
+      { code: 'K733', desc: 'CritiCall telephone consultation — consultant physician', price: '$47.75',
+        moreInfo: 'Bill this if you\'re the intensivist being consulted via CritiCall — e.g. accepting/advising on a transfer into your ICU. Max 1 K733/K737 per physician per patient per day; max 3 combined per patient per day (if multiple consultants are needed). Must include the referring physician\'s billing number on the claim.' },
+      { code: 'E150', desc: 'CritiCall review of complex neurosurgical imaging, add to K733', price: '$44.00',
+        moreInfo: 'Neurosurgery (04) specialists only, for reviewing complex neurosurgical imaging (≥1 brain/spinal CT, MRI, or angiography) provided by the referring physician — not generally applicable to a non-neurosurgical intensivist.' },
+      { code: 'K736', desc: 'CritiCall telephone consultation — referring physician, on duty in ED/urgent care', price: '$37.05',
+        moreInfo: 'Use K736 instead of K732 if you\'re on duty in an ED or hospital urgent care clinic at the time of the call.' },
+      { code: 'K737', desc: 'CritiCall telephone consultation — consultant physician, on duty in ED/urgent care', price: '$47.75',
+        moreInfo: 'Use K737 instead of K733 if you\'re on duty in an ED or hospital urgent care clinic at the time of the call.' },
+      { note: 'Requirements: the call must actually be arranged by CritiCall Ontario, and both physicians must be physically in Ontario at the time. Medical record must show: that CritiCall arranged it, patient name/health number, both physicians\' identities, the reason for consultation, and the consultant\'s opinion/recommendations. Not eligible if you receive non-fee-for-service compensation (salary/APP/AFP) for the call.' },
+      { sub: 'Physician-to-physician telephone consultation (non-CritiCall)' },
+      { info: 'For a general phone consult where a referring physician/NP calls a consultant for advice because of case complexity/seriousness/obscurity — NOT arranged through CritiCall. Requires a minimum of 10 minutes of patient-related discussion.' },
+      { code: 'K730', desc: 'Phone consultation — referring physician', price: '$37.05' },
+      { code: 'K731', desc: 'Phone consultation — consultant physician', price: '$47.75',
+        moreInfo: 'Requires the referring physician\'s provider number on the claim. NOT payable if: the call is to arrange transfer of the patient\'s care; the call is to arrange a consult/assessment/visit/procedure/investigation; the call is primarily to discuss test results; or you (the consultant) go on to render a consult/assessment/visit for that patient the SAME day or NEXT day.' },
+      { code: 'K734', desc: 'Phone consultation — referring physician, on duty in ED/urgent care', price: '$37.05' },
+      { code: 'K735', desc: 'Phone consultation — consultant physician, on duty in ED/urgent care', price: '$47.75' },
+      { note: 'Max 1 K730/K734 (referring) and 1 K731/K735 (consultant) per patient per day. Document: patient name/HN, start/stop times, both physicians\' names, reason, and the consultant\'s opinion/recommendations.' }
+    ]
+  },
+  {
+    id: 'subseq', label: 'Subsequent / MRP', color: '#8b5cf6',
+    items: [
+      { info: 'These codes almost never apply on a day you\'re billing the per diem — the per diem\'s "physician-in-charge" fee already bundles daily management. They matter on the days you AREN\'T billing a per diem for that patient: before/after a per-diem-eligible stretch, for a stable monitoring-only ICU admission, or after the patient leaves your care.' },
+      { sub: 'C122 / C123 — MRP day 1 & day 2 after the hospital admission assessment' },
+      { info: 'These follow the hospital ADMISSION assessment, not admission to the ICU specifically — they\'re calendar-day-after-admission codes. Usual pathway: Day 0 = admission assessment + E082 (if eligible). Day 1 = C122 + E083/E084. Day 2 = C123 + E083/E084. Later days = your specialty\'s regular subsequent-visit code + E083/E084.' },
+      { code: 'C122', desc: 'Day 1 following admission assessment', price: '$71.80',
+        moreInfo: 'When to use: only when the patient is receiving ordinary MRP inpatient care rather than care that qualifies for an ICU per diem — e.g. admitted directly to the ICU for monitoring but stable, not needing qualifying critical/ventilatory/comprehensive care. This is location-independent — being physically in the ICU doesn\'t automatically mean G400/G405/G557 applies instead. When NOT to use: if you\'re billing an ICU per diem for that day, don\'t add C122 just because it\'s the first day after admission — the per diem already covers that day\'s management.' },
+      { code: 'C123', desc: 'Day 2 following admission assessment', price: '$71.80',
+        moreInfo: 'When to use: only when the patient is receiving ordinary MRP inpatient care rather than care that qualifies for an ICU per diem — e.g. admitted directly to the ICU for monitoring but stable, not needing qualifying critical/ventilatory/comprehensive care. This is location-independent — being physically in the ICU doesn\'t automatically mean G400/G405/G557 applies instead. When NOT to use: if you\'re billing an ICU per diem for that day, don\'t add C123 just because it\'s the second day after admission — the per diem already covers that day\'s management.' },
+      { sub: 'C124 — MRP day of discharge' },
+      { info: 'Requires a subsequent visit PLUS completion of a discharge summary within 48h (reason for admission, procedures performed, discharge diagnosis, discharge medications) and arranging follow-up. NOT payable if discharged within 48h of admission, or for a discharge straight from an ICU/NICU where the critical-care per diem was billed that same day.' },
+      { code: 'C124', desc: 'Day of discharge', price: '$71.80',
+        moreInfo: 'When to use: you are the MRP; the patient is being DISCHARGED FROM HOSPITAL (not merely transferred out of ICU to a ward); you perform the discharge-day visit; you complete the discharge summary; and no incompatible ICU per-diem service is being claimed by you that same day. Fits: direct discharge home from ICU, direct discharge from a short-stay critical-care unit, or discharge to another institution if the Schedule treats that disposition as a hospital discharge. When NOT to use: C124 does NOT apply when simply transferring a patient from ICU to a ward in the same hospital.' },
+      { sub: 'Palliative care visit', moreInfo: 'Unlike routine subsequent visits, palliative visits to a patient in a designated palliative care bed have no weekly/monthly frequency cap. Add E083/E084 if rendered by the MRP.' },
+      { code: 'C982', desc: 'Palliative care visit — no service-frequency limit', price: '$40.05', moreInfo: 'Unlike routine subsequent visits, palliative visits to a patient in a designated palliative care bed have no weekly/monthly frequency cap. Add E083/E084 if rendered by the MRP.' },
+      { sub: 'MRP premiums' },
+      { code: 'E082', desc: 'Admission assessment by MRP', price: '+30%',
+        moreInfo: 'Adds 30% to the admission assessment when rendered by the MRP — once per hospital admission, not for transfers within the same hospital. An add-on premium, not a standalone claim — it always rides on top of an eligible admission-assessment code (never on a per-diem G-code).' },
+      { code: 'E083', desc: 'Subsequent visit / palliative visit by MRP', price: '+30%',
+        moreInfo: 'Adds 30% to a subsequent/palliative visit by the MRP. An add-on premium, not a standalone claim — it always rides on top of an eligible visit code (never on a per-diem G-code). Only one of E083/E084 payable per patient per day.' },
+      { code: 'E084', desc: 'As E083, on Sat/Sun/Holiday (specialty-restricted — see note)', price: '+45%',
+        moreInfo: 'Adds 45% instead of E083, for weekend/holiday MRP subsequent visits — only one of E083/E084 payable per patient per day. Restricted to MRPs in a specific list of specialties: Family Practice (00), Dermatology (02), Geriatrics (07), Critical Care Medicine (11), Emergency Medicine (12), Internal Medicine (13), and several others — Anesthesiology (01) is NOT on that list, so an anesthesiologist MRP can bill E083 on a weekend subsequent visit but not the extra E084 bump.' },
+      { sub: 'Practical decision rule' },
+      { info: 'Is the patient receiving qualifying ICU-level treatment today? → Use the appropriate per diem. Don\'t add C122/C123.  Is the patient in ICU but receiving ordinary MRP-level care? → Ordinary inpatient billing may apply; C122/C123 may apply if today is the corresponding day after the admission assessment.  Is the patient leaving the hospital directly from ICU? → C124 may apply if you\'re MRP, perform the discharge visit, and complete the discharge summary.' }
+    ]
+  },
+  {
+    id: 'svp', label: 'Special Visit Premiums', color: '#0891b2',
+    items: [
+      { info: 'For an intensivist on 24/7 home call: if you\'re called in after hours for a NEW consult/admission (before per-diem billing starts) or to see a patient you are NOT claiming the per diem for that day, the SVP can apply to that consultation/assessment — as long as it\'s a genuine non-elective visit and not just rounding. SVPs are also not eligible for elective admission assessments, or for services described by ED "H"-prefix codes.' },
+      { sub: 'Weekday daytime (07:00–17:00) — max 10 pts' },
+      { code: 'C960', desc: 'Travel premium (max 2)', price: '$37.40' },
+      { code: 'C990', desc: '1st person seen', price: '$20.55' },
+      { code: 'C991', desc: 'Additional person(s)', price: '$20.55' },
+      { sub: 'Weekday, sacrifice of office hours — max 10 pts' },
+      { code: 'C961', desc: 'Travel premium (max 2)', price: '$37.40' },
+      { code: 'C992', desc: '1st person seen', price: '$41.10' },
+      { code: 'C993', desc: 'Additional person(s)', price: '$41.10' },
+      { sub: 'Weekday evenings (17:00–24:00) — max 10 pts' },
+      { code: 'C962', desc: 'Travel premium (max 2)', price: '$37.40' },
+      { code: 'C994', desc: '1st person seen', price: '$61.70' },
+      { code: 'C995', desc: 'Additional person(s)', price: '$61.70' },
+      { sub: 'Sat / Sun / Holidays (07:00–24:00) — max 20 pts' },
+      { code: 'C963', desc: 'Travel premium (max 6)', price: '$37.40' },
+      { code: 'C986', desc: '1st person seen', price: '$77.10' },
+      { code: 'C987', desc: 'Additional person(s)', price: '$77.10' },
+      { sub: 'Nights (00:00–07:00) — no max' },
+      { code: 'C964', desc: 'Travel premium (unlimited)', price: '$37.40' },
+      { code: 'C996', desc: '1st person seen', price: '$102.80' },
+      { code: 'C997', desc: 'Additional person(s)', price: '$102.80' }
+    ]
+  },
+  {
+    id: 'rules', label: 'Team Fee Rules', color: '#7c3aed',
+    items: [
+      { info: 'Per-diem team fees (Critical Care / Ventilatory / Comprehensive Care) are meant to cover the physician-in-charge\'s full-day management, claimed "as if there was only one physician-in-charge" even if that role changes hands during the admission. This bundling is broader than just billing codes — it explicitly includes many bedside procedures (arterial/central lines, IO access, intubation, urinary/NG catheters, and more). See Per Diem / Team Fees for exactly what\'s bundled into each of the three per-diem types.' },
+      { info: 'Other physicians (e.g. covering internists in the evening/overnight) billing separate critical-care or assessment codes on the same day the per-diem is claimed go to "Independent Consideration" — a discretionary review rather than automatic payment.' },
+      { info: 'Fee-for-service critical care (G521-G523/G391/G395) is NOT payable to the same physician, same patient, same day as any Critical Care, Ventilatory Support, Comprehensive Care, or Neonatal Intensive Care per-diem fee.' },
+      { info: 'The admission consultation/assessment is not billable on the same day as the first-day per diem.' },
+      { info: 'Special Visit Premiums never stack on top of a day for which a critical-care team fee is being billed for that patient — see the Special Visit Premiums section for what still qualifies.' }
+    ]
+  },
+  {
+    id: 'updates', label: '↻ Updates', color: '#0891b2', navClass: 'navchip-upd',
+    items: [ { updCard: true } ]
+  }
+];
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+
+function rowHtml(it) {
+  var codeLower = it.code.toLowerCase();
+  var priceHtml = it.price
+    ? '<span class="price">' + esc(it.price) + '</span>'
+    : '<span class="price sob">SOB</span>';
+  var hasInfo = !!it.moreInfo;
+  var infoBtn = hasInfo ? '<button class="info-btn" type="button" aria-label="More info">i</button>' : '';
+  var row = '<div class="row' + (hasInfo ? ' has-info' : '') + '" data-code="' + esc(codeLower) + '" data-desc="' + esc(it.desc.toLowerCase()) + '" data-fk="' + esc(it.code) + '">' +
+    '<button class="star" type="button" aria-label="Toggle favourite" data-fav="' + esc(it.code) + '">☆</button>' +
+    '<span class="code">' + esc(it.code) + '</span>' +
+    '<span class="desc">' + esc(it.desc) + '</span>' +
+    priceHtml + infoBtn + '</div>';
+  if (hasInfo) {
+    row += '<div class="info-panel">' + esc(it.moreInfo) + '</div>';
+  }
+  return row;
+}
+
+var SEDCALC_HTML =
+  '<div class="calc" id="sedcalc">' +
+  '<div class="calc-h">Sedation code builder</div>' +
+  '<label class="calc-row"><span class="calc-lbl">Procedure (search by name or code)</span>' +
+  '<div class="ac-wrap"><input id="c-proc" class="calc-in" type="text" inputmode="text" placeholder="e.g. shoulder, F046, ankle…" autocomplete="off">' +
+  '<div id="c-proc-list" class="ac-list"></div></div></label>' +
+  '<div class="calc-hint" id="c-proc-picked">Search the base procedure you\'re sedating for — its code becomes the "C" code.</div>' +
+  '<label class="calc-row"><span class="calc-lbl">Total sedation time (minutes)</span>' +
+  '<input id="c-time" class="calc-in" type="number" inputmode="numeric" min="0" step="1" placeholder="e.g. 40"></label>' +
+  '<div class="calc-row"><span class="calc-lbl">ASA class</span><div class="seg" id="c-asa">' +
+  '<button type="button" data-v="1" class="on">I–II</button><button type="button" data-v="3">III</button>' +
+  '<button type="button" data-v="4">IV</button><button type="button" data-v="5">V</button></div></div>' +
+  '<div class="calc-row"><span class="calc-lbl">Age band</span><div class="seg" id="c-age">' +
+  '<button type="button" data-v="adult" class="on">Adult &lt;70</button><button type="button" data-v="29d1">29d–1y</button>' +
+  '<button type="button" data-v="1to8">1–8y</button><button type="button" data-v="70">70–79</button>' +
+  '<button type="button" data-v="80">80+</button></div></div>' +
+  '<div class="calc-row"><span class="calc-lbl">Modifiers</span><div class="chips" id="c-mods">' +
+  '<button type="button" data-v="E020C">ASA-E emergency</button><button type="button" data-v="E010C">BMI &gt; 40</button>' +
+  '<button type="button" data-v="E011C">Prone</button><button type="button" data-v="E024C">Sitting &gt;60&deg;</button></div></div>' +
+  '<div class="calc-row"><span class="calc-lbl">Time premium</span><div class="seg" id="c-prem">' +
+  '<button type="button" data-v="" class="on">None</button><button type="button" data-v="E400C">Eve/Wknd</button>' +
+  '<button type="button" data-v="E401C">Night</button></div></div>' +
+  '<div class="calc-out" id="c-out"></div>' +
+  '<button type="button" class="calc-copy" id="c-copy">Copy codes</button>' +
+  '</div>';
+
+function itemsHtml(items) {
+  var html = '';
+  items.forEach(function (it) {
+    if (it.updCard) {
+      html += '<div class="upd-card"><button type="button" id="forcerefresh">↻ Check for update</button>' +
+        '<div class="upd-meta">You are viewing <b>v2026-08-06a</b>.<br>When a newer version is published, a prompt appears at the bottom of the screen. You can also check any time with the button above.</div></div>';
+    } else if (it.sedationCalc) {
+      html += SEDCALC_HTML;
+    } else if (it.specialtyToggle) {
+      html += '<div class="spec-wrap"><span class="spec-lbl">Base specialty</span><div class="seg" id="spec-seg"></div>' +
+        '<div class="spec-hint">Codes shown reflect the selected base specialty. Only specialties with a verified code/fee set are offered — tell me yours if it isn\'t listed and I\'ll add it.</div></div>' +
+        '<div id="spec-rows"></div>';
+    } else if (it.sub) {
+      html += '<div class="sub">' + esc(it.sub) + '</div>';
+    } else if (it.note) {
+      html += '<div class="note">⚠ ' + esc(it.note) + '</div>';
+    } else if (it.info) {
+      html += '<div class="info">' + esc(it.info) + '</div>';
+    } else if (it.code) {
+      html += rowHtml(it);
+    }
+  });
+  return html;
+}
+
+function buildDom() {
+  var nav = document.getElementById('nav');
+  var content = document.getElementById('content');
+
+  var favSection = document.createElement('section');
+  favSection.id = 'favourites';
+  favSection.style.setProperty('--c', '#f5a524');
+  favSection.innerHTML = '<div class="secban"><span class="bandot"></span>★ Favourites' +
+    '<button type="button" id="fav-clear" class="fav-clear hidden">Clear all</button>' +
+    '<a class="top" href="#top">↑ top</a></div>' +
+    '<div class="rows" id="fav-rows"><div class="fav-empty" id="fav-empty">Tap the ☆ on any code to add it here.</div></div>';
+  content.appendChild(favSection);
+
+  var favChip = document.createElement('a');
+  favChip.className = 'navchip navchip-fav';
+  favChip.href = '#favourites';
+  favChip.style.setProperty('--c', '#f5a524');
+  favChip.innerHTML = '<span class="navdot"></span>★ Favourites';
+  nav.appendChild(favChip);
+
+  SECTIONS.forEach(function (sec) {
+    var chip = document.createElement('a');
+    chip.className = 'navchip' + (sec.navClass ? ' ' + sec.navClass : '');
+    chip.href = '#' + sec.id;
+    chip.style.setProperty('--c', sec.color);
+    chip.innerHTML = '<span class="navdot"></span>' + esc(sec.label);
+    nav.appendChild(chip);
+
+    var section = document.createElement('section');
+    section.id = sec.id;
+    section.style.setProperty('--c', sec.color);
+    section.innerHTML = '<div class="secban"><span class="bandot"></span>' + esc(sec.label) +
+      '<a class="top" href="#top">↑ top</a></div><div class="rows">' + itemsHtml(sec.items) + '</div>';
+    content.appendChild(section);
+  });
+}
+
+function loadSpecialty() {
+  try {
+    var v = window.localStorage.getItem(SPEC_KEY);
+    if (v && SPECIALTIES[v]) return v;
+  } catch (e) {}
+  return DEFAULT_SPECIALTY;
+}
+function saveSpecialty(v) {
+  try { window.localStorage.setItem(SPEC_KEY, v); } catch (e) {}
+}
+
+function initSpecialtyToggle(onChange) {
+  var seg = document.getElementById('spec-seg');
+  var rowsEl = document.getElementById('spec-rows');
+  if (!seg || !rowsEl) return;
+  var current = loadSpecialty();
+
+  SPECIALTY_ORDER.forEach(function (key) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = SPECIALTIES[key].label;
+    b.classList.toggle('on', key === current);
+    b.addEventListener('click', function () {
+      current = key;
+      saveSpecialty(key);
+      seg.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      render();
+    });
+    seg.appendChild(b);
+  });
+
+  function render() {
+    rowsEl.innerHTML = itemsHtml(SPECIALTIES[current].rows);
+    if (onChange) onChange();
+  }
+  render();
+}
+
+// ---------- Sedation calculator (ported in full from ED guide) ----------
+function initSedationCalc() {
+  var box = document.getElementById('sedcalc');
+  if (!box) return;
+  var UNIT = 15.96;
+  var BASE_UNITS = 6;
+  var proc = document.getElementById('c-proc');
+  var timeIn = document.getElementById('c-time');
+  var out = document.getElementById('c-out');
+
+  var state = { asa: '1', age: 'adult', mods: {}, prem: '' };
+
+  function segWire(id, key) {
+    var seg = document.getElementById(id);
+    seg.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        seg.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on');
+        state[key] = b.getAttribute('data-v');
+        render();
+      });
+    });
+  }
+  segWire('c-asa', 'asa');
+  segWire('c-age', 'age');
+  segWire('c-prem', 'prem');
+
+  var mods = document.getElementById('c-mods');
+  mods.querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var v = b.getAttribute('data-v');
+      if (state.mods[v]) { delete state.mods[v]; b.classList.remove('on'); }
+      else { state.mods[v] = true; b.classList.add('on'); }
+      render();
+    });
+  });
+
+  var PROC_LIST = [{"c": "H103", "d": "Multi system"}, {"c": "H102", "d": "Comprehensive"}, {"c": "H101", "d": "Minor"}, {"c": "H104", "d": "Re-assessment*"}, {"c": "H133", "d": "Multi system"}, {"c": "H132", "d": "Comprehensive"}, {"c": "H131", "d": "Minor"}, {"c": "H134", "d": "Re-assessment*"}, {"c": "H123", "d": "Multi system"}, {"c": "H122", "d": "Comprehensive"}, {"c": "H121", "d": "Minor"}, {"c": "H124", "d": "Re-assessment*"}, {"c": "H153", "d": "Multi system"}, {"c": "H152", "d": "Comprehensive"}, {"c": "H151", "d": "Minor"}, {"c": "H154", "d": "Re-assessment*"}, {"c": "H055", "d": "Consultation (sent by GP)"}, {"c": "H105", "d": "Holding orders"}, {"c": "G521", "d": "First 15 min"}, {"c": "G523", "d": "2nd 15 min"}, {"c": "G522", "d": "Every 15 min after"}, {"c": "G391", "d": "4th doc per 15 min"}, {"c": "G395", "d": "First 15 min"}, {"c": "K736", "d": "CritiCall referring out"}, {"c": "Z341", "d": "Chest tube"}, {"c": "Z437", "d": "Cardioversion (G3 only, not G5)", "k": "shock defibrillation dccv afib"}, {"c": "Z590", "d": "Paracentesis diagnostic"}, {"c": "Z591", "d": "Paracentesis therapeutic"}, {"c": "Z401", "d": "Pericardiocentesis"}, {"c": "Z332", "d": "Thoracentesis (dx or tx)"}, {"c": "G270", "d": "IO (intraosseous line)"}, {"c": "Z804", "d": "LP (lumbar puncture)"}, {"c": "G269", "d": "Central line"}, {"c": "G268", "d": "Arterial line"}, {"c": "G211", "d": "Endotracheal intubation"}, {"c": "G115", "d": "External pacing"}, {"c": "G303", "d": "Transcutaneous/transthoracic pacemaker insertion"}, {"c": "Z459", "d": "Arterial puncture for blood gas"}, {"c": "G356", "d": "Gastric lavage — therapeutic"}, {"c": "G355", "d": "Gastric lavage — diagnostic"}, {"c": "H113", "d": "Weekend/Holiday 08–24h"}, {"c": "H112", "d": "Nights 00–08h"}, {"c": "H114", "d": "Evenings 17–24h Mon–Thu"}, {"c": "K014", "d": "Donor discussion (per unit)"}, {"c": "K015", "d": "Relatives of dying pt (per unit)"}, {"c": "K028", "d": "Needle stick / STD"}, {"c": "K005", "d": "Mental Health (per unit, 30 min)"}, {"c": "K623", "d": "Form 1"}, {"c": "K680", "d": "Substance abuse assm't"}, {"c": "K035", "d": "MTO"}, {"c": "C777", "d": "Death cert & pronounce"}, {"c": "C771", "d": "Death cert only"}, {"c": "K070", "d": "Home care appl'n (CCAC)"}, {"c": "K071", "d": "Home care direction (<8wk)"}, {"c": "K072", "d": "Home care direction (>8wk)"}, {"c": "A001", "d": "Minor"}, {"c": "A007", "d": "Intermediate"}, {"c": "A003", "d": "General assessment"}, {"c": "A004", "d": "General re-assessment"}, {"c": "H960", "d": "Travel Premium"}, {"c": "H980", "d": "1st pt seen"}, {"c": "H981", "d": "Additional pts"}, {"c": "H962", "d": "Travel Premium"}, {"c": "H984", "d": "1st pt seen"}, {"c": "H985", "d": "Additional pts"}, {"c": "H964", "d": "Travel Premium"}, {"c": "H986", "d": "1st pt seen"}, {"c": "H987", "d": "Additional pts"}, {"c": "H963", "d": "Travel Premium"}, {"c": "H988", "d": "1st pt seen"}, {"c": "H989", "d": "Additional pts"}, {"c": "A102", "d": "Call someone else's patient"}, {"c": "Z101", "d": "SC x1 (incl trephination)"}, {"c": "Z173", "d": "SC x2"}, {"c": "Z174", "d": "SC x3+"}, {"c": "Z104", "d": "perianal"}, {"c": "Z106", "d": "ischiorectal / pilonidal"}, {"c": "Z103", "d": "palmar / plantar spaces"}, {"c": "Z140", "d": "Breast"}, {"c": "Z506", "d": "Oral / PTA"}, {"c": "Z714", "d": "Vulvar / Bartholin", "k": "bartholin vagina vulva vagina abscess"}, {"c": "Z102", "d": "SC x1"}, {"c": "Z172", "d": "SC x2+"}, {"c": "Z105", "d": "perianal"}, {"c": "Z107", "d": "ischiorectal / pilonidal"}, {"c": "Z108", "d": "palmar / plantar spaces"}, {"c": "Z715", "d": "Vulvar / Bartholin", "k": "bartholin vagina vulva vagina abscess"}, {"c": "Z114", "d": "SC/skin, local anaesthetic"}, {"c": "Z115", "d": "SC/skin, general anaesthetic"}, {"c": "Z847", "d": "Cornea FB x1"}, {"c": "Z848", "d": "Cornea FB x2 (Z845 if 3+)"}, {"c": "Z915", "d": "Ear FB, simple"}, {"c": "Z866", "d": "Ear FB w sedation"}, {"c": "Z311", "d": "Nose, simple"}, {"c": "Z312", "d": "Nose, w sedation"}, {"c": "Z541", "d": "GI / rectal FB"}, {"c": "Z756", "d": "Fecal disimpaction"}, {"c": "Z432", "d": "Vagina FB"}, {"c": "Z128", "d": "Nail plate excision"}, {"c": "Z130", "d": "Nail excision + cautery"}, {"c": "Z520", "d": "Tube exchange"}, {"c": "Z176", "d": "< 5 cm"}, {"c": "Z175", "d": "5–10 cm"}, {"c": "Z179", "d": "10–15 cm"}, {"c": "Z191", "d": "> 15 cm"}, {"c": "R024", "d": "Earlobe"}, {"c": "Z154", "d": "< 5 cm"}, {"c": "Z177", "d": "5–10 cm"}, {"c": "Z190", "d": "10–15 cm"}, {"c": "Z192", "d": "> 15 cm"}, {"c": "E530", "d": "w sedation"}, {"c": "Z188", "d": "Complex (not face)"}, {"c": "Z187", "d": "Complex face"}, {"c": "Z189", "d": "Zone 1 digit"}, {"c": "Z080", "d": "To SC tissue — one"}, {"c": "Z081", "d": "To SC tissue — two"}, {"c": "Z082", "d": "To SC tissue — three"}, {"c": "Z083", "d": "To SC tissue — four+"}, {"c": "Z084", "d": "Tendon/lig/bursa/bone — one"}, {"c": "Z085", "d": "Tendon/lig/bursa/bone — 2+"}, {"c": "E542", "d": "Out-of-hospital premium"}, {"c": "E003C", "d": "If no code available (6u base)"}, {"c": "E023C", "d": "Exam under anesthesia (6u base)"}, {"c": "E020C", "d": "ASA E — Emergency sedation = 4u"}, {"c": "E022C", "d": "ASA III: Severe systemic = 2u"}, {"c": "E017C", "d": "ASA IV: Incapacitating = 10u"}, {"c": "E016C", "d": "ASA V: Moribund = 20u"}, {"c": "E010C", "d": "BMI > 40 = 2u"}, {"c": "E011C", "d": "Prone position = 4u"}, {"c": "E024C", "d": "Semi-sit (>60°) = 4u"}, {"c": "E009C", "d": "Age 29d–1yo = 4u"}, {"c": "E019C", "d": "Age 1–8yo = 2u"}, {"c": "E007C", "d": "Age 70–79 = 1u"}, {"c": "E018C", "d": "Age 80+ = 3u"}, {"c": "G435", "d": "Tonometry"}, {"c": "Z315", "d": "Epistaxis packing (per side)"}, {"c": "Z314", "d": "Epistaxis cautery (per side)"}, {"c": "Z316", "d": "Epistaxis posterior"}, {"c": "G420", "d": "Ear syringing"}, {"c": "G403", "d": "Epley +"}, {"c": "Z538", "d": "Hernia/prolapse reduction", "k": "reduce dislocation fracture"}, {"c": "G313", "d": "ECG"}, {"c": "G847", "d": "Tetanus by MD"}, {"c": "G370", "d": "Joint/bursa inject-aspirate"}, {"c": "G328", "d": "Aspiration of bursa / complex joint ± injection"}, {"c": "E234", "d": "Lateral canthotomy"}, {"c": "Z901", "d": "Nasolacrimal irrigation (per eye)"}, {"c": "A115", "d": "Major eye examination"}, {"c": "X016", "d": "Eye X-ray for foreign body"}, {"c": "Z909", "d": "Ear canal biopsy"}, {"c": "G396", "d": "Keloid injection (extensive)"}, {"c": "J149", "d": "US-guided aspiration / I&D"}, {"c": "H100", "d": "POCUS"}, {"c": "G060", "d": "Peripheral nerve, major"}, {"c": "G061", "d": "Peripheral nerve, minor"}, {"c": "G224", "d": "Local nerve block for procedure"}, {"c": "G384", "d": "Trigger point (single / 1st)"}, {"c": "G385", "d": "Trigger point ea add'l (max 2)"}, {"c": "G260", "d": "Major plexus (>=2 periph)"}, {"c": "G235", "d": "Supraorbital"}, {"c": "G250", "d": "Inferior alveolar (max/mand)"}, {"c": "G219", "d": "Infraorbital"}, {"c": "G225", "d": "Mental branch"}, {"c": "G921", "d": "Spheno-palatine ganglion"}, {"c": "G243", "d": "Femoral unilateral"}, {"c": "G227", "d": "Other cranial nerve block"}, {"c": "G258", "d": "Intrapleural block (single)"}, {"c": "G067", "d": "Intrapleural block w/ catheter"}, {"c": "G063", "d": "Outpatient continuous nerve block infusion"}, {"c": "Z786", "d": "Priapism — aspiration/irrigation + injection"}, {"c": "S569", "d": "Priapism — adult or child"}, {"c": "Z708", "d": "Hydrocele aspiration"}, {"c": "Z543", "d": "Anoscopy / proctoscopy"}, {"c": "H264", "d": "ED pelvic exam with speculum"}, {"c": "J138", "d": "Intracavitary US (transvaginal/rectal)"}, {"c": "F004", "d": "Phalanx", "k": "finger toe"}, {"c": "F008", "d": "Metacarpal", "k": "hand finger wrist"}, {"c": "F006", "d": "Intra-articular"}, {"c": "F102", "d": "Carpus", "k": "wrist"}, {"c": "F018", "d": "Scaphoid"}, {"c": "F027", "d": "Radius distal (Colles', Smith)", "k": "wrist distal radius wrist distal radius wrist"}, {"c": "F024", "d": "Radius & ulnar shaft"}, {"c": "F014", "d": "Radius & ulna – Monteggia", "k": "forearm"}, {"c": "F031", "d": "Radius or ulna"}, {"c": "F029", "d": "Epicondyle", "k": "elbow"}, {"c": "F039", "d": "Transcondylar / condylar", "k": "elbow elbow"}, {"c": "F034", "d": "Olecranon", "k": "elbow"}, {"c": "F047", "d": "Humerus tuberosity", "k": "arm"}, {"c": "F053", "d": "Humerus neck w/o head disl", "k": "arm"}, {"c": "F050", "d": "Humeral neck w head disl", "k": "arm"}, {"c": "F042", "d": "Humeral shaft", "k": "arm"}, {"c": "F119", "d": "Scapula", "k": "shoulder blade"}, {"c": "F085", "d": "Patella", "k": "kneecap"}, {"c": "F078", "d": "Tibia +/- fibula", "k": "leg shin leg"}, {"c": "F082", "d": "Fibula", "k": "leg"}, {"c": "F074", "d": "Ankle"}, {"c": "F062", "d": "Metatarsus", "k": "foot ankle"}, {"c": "F056", "d": "Toe"}, {"c": "F066", "d": "Tarsus excluding os calcis", "k": "foot ankle heel"}, {"c": "F005", "d": "Phalanx", "k": "finger toe"}, {"c": "F009", "d": "Metacarpal", "k": "hand finger wrist"}, {"c": "F016", "d": "Carpus", "k": "wrist"}, {"c": "F028", "d": "Radius distal (hematoma block)", "k": "wrist"}, {"c": "F046", "d": "Radius distal (under sedation)", "k": "wrist"}, {"c": "F037", "d": "Epicondyle", "k": "elbow"}, {"c": "F040", "d": "Transcondylar / condylar", "k": "elbow elbow"}, {"c": "F035", "d": "Olecranon", "k": "elbow"}, {"c": "F025", "d": "Radius & ulnar shaft"}, {"c": "F022", "d": "Radius & ulna – Monteggia", "k": "forearm"}, {"c": "F032", "d": "Radius or ulna"}, {"c": "F048", "d": "Humerus tuberosity", "k": "arm"}, {"c": "F054", "d": "Humerus neck w/o head disl", "k": "arm"}, {"c": "F051", "d": "Humeral neck w head disl", "k": "arm"}, {"c": "F043", "d": "Humeral shaft", "k": "arm"}, {"c": "F110", "d": "Clavicle", "k": "collarbone"}, {"c": "F123", "d": "Sternum", "k": "chest"}, {"c": "F094", "d": "Femur child", "k": "thigh"}, {"c": "F095", "d": "Femur adult", "k": "thigh"}, {"c": "F079", "d": "Tibia with or without fibula", "k": "leg shin leg"}, {"c": "F083", "d": "Fibula", "k": "leg"}, {"c": "F075", "d": "Ankle"}, {"c": "F104", "d": "Ankle w tibial plafond burst", "k": "leg shin"}, {"c": "F058", "d": "Toe"}, {"c": "F067", "d": "Tarsus excluding os calcis", "k": "foot ankle heel"}, {"c": "F057", "d": "Intra-articular fracture – IP joint"}, {"c": "F136", "d": "Nasal bone – closed reduction", "k": "reduce dislocation fracture"}, {"c": "F137", "d": "Nasal bone – open reduction", "k": "reduce dislocation fracture"}, {"c": "D001", "d": "Finger"}, {"c": "D004", "d": "Metacarpal / phalangeal", "k": "finger toe hand finger wrist"}, {"c": "D007", "d": "Carpal", "k": "wrist"}, {"c": "D009", "d": "Elbow joint"}, {"c": "D012", "d": "Radial head (pulled elbow)", "k": "pulled elbow nursemaid"}, {"c": "D025", "d": "AC / SCJ (w sedation), 6u", "k": "sternoclavicular shoulder collarbone"}, {"c": "D016", "d": "Glenohumeral (w sedation), 6u", "k": "shoulder arm"}, {"c": "D062", "d": "Temporomandibular joint", "k": "jaw tmj"}, {"c": "D042", "d": "Hip", "k": "femoral head"}, {"c": "D038", "d": "Knee"}, {"c": "D031", "d": "Patella (w sedation)", "k": "kneecap"}, {"c": "D035", "d": "Ankle"}, {"c": "D027", "d": "Interphalangeal", "k": "finger toe finger toe ip"}, {"c": "D030", "d": "Metatarsophalangeal / tarsus", "k": "finger toe foot toe foot ankle foot"}, {"c": "D026", "d": "Tarso-metatarsal", "k": "foot toe foot"}, {"c": "D033", "d": "Tarsus", "k": "foot ankle"}, {"c": "R660", "d": "Hand (ea side)"}, {"c": "R661", "d": "Each finger"}, {"c": "R662", "d": "Face (ea)"}, {"c": "R637", "d": "Other"}, {"c": "Z203", "d": "Arm / forearm / wrist"}, {"c": "Z213", "d": "Below knee"}, {"c": "Z211", "d": "Full leg"}, {"c": "Z202", "d": "Hand"}, {"c": "Z204", "d": "Cast removal (>2wk)"}];
+  var acList = document.getElementById('c-proc-list');
+  var picked = document.getElementById('c-proc-picked');
+  var chosenCode = '';
+  var activeIdx = -1;
+  var curMatches = [];
+
+  function normalize(x) { return (x || '').toLowerCase(); }
+
+  function renderMatches(q) {
+    q = normalize(q).trim();
+    acList.innerHTML = '';
+    activeIdx = -1;
+    if (!q) { acList.classList.remove('on'); curMatches = []; return; }
+    var terms = q.split(/\s+/);
+    curMatches = PROC_LIST.filter(function (it) {
+      var hay = normalize(it.c) + ' ' + normalize(it.d) + ' ' + normalize(it.k || '');
+      return terms.every(function (t) { return hay.indexOf(t) !== -1; });
+    }).slice(0, 12);
+    if (!curMatches.length) {
+      acList.innerHTML = '<div class="ac-none">No match — you can also type a code directly.</div>';
+      acList.classList.add('on');
+      return;
+    }
+    curMatches.forEach(function (it, i) {
+      var el = document.createElement('div');
+      el.className = 'ac-item';
+      el.setAttribute('data-i', i);
+      el.innerHTML = '<span class="acc">' + it.c + '</span><span class="acd">' + it.d + '</span>';
+      el.addEventListener('mousedown', function (e) { e.preventDefault(); choose(i); });
+      acList.appendChild(el);
+    });
+    acList.classList.add('on');
+  }
+
+  function choose(i) {
+    var it = curMatches[i];
+    if (!it) return;
+    chosenCode = it.c;
+    proc.value = it.c + ' — ' + it.d;
+    picked.textContent = 'Using ' + it.c + ' → "' + it.c + 'C"';
+    picked.classList.add('set');
+    acList.classList.remove('on');
+    render();
+  }
+
+  function highlight(dir) {
+    var items = acList.querySelectorAll('.ac-item');
+    if (!items.length) return;
+    activeIdx += dir;
+    if (activeIdx < 0) activeIdx = items.length - 1;
+    if (activeIdx >= items.length) activeIdx = 0;
+    items.forEach(function (el, i) { el.classList.toggle('active', i === activeIdx); });
+    items[activeIdx].scrollIntoView({ block: 'nearest' });
+  }
+
+  proc.addEventListener('input', function () {
+    chosenCode = '';
+    picked.classList.remove('set');
+    picked.textContent = 'Search the base procedure — its code becomes the "C" code.';
+    renderMatches(proc.value);
+    render();
+  });
+  proc.addEventListener('keydown', function (e) {
+    if (!acList.classList.contains('on')) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); highlight(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(-1); }
+    else if (e.key === 'Enter') { if (activeIdx >= 0) { e.preventDefault(); choose(activeIdx); } }
+    else if (e.key === 'Escape') { acList.classList.remove('on'); }
+  });
+  proc.addEventListener('blur', function () { setTimeout(function () { acList.classList.remove('on'); }, 150); });
+  proc.addEventListener('focus', function () { if (proc.value) renderMatches(proc.value); });
+  timeIn.addEventListener('input', render);
+
+  function timeUnits(mins) {
+    if (!mins || mins <= 0) return 0;
+    var u = 0, blocks = Math.ceil(mins / 15);
+    for (var i = 0; i < blocks; i++) {
+      var mid = i * 15;
+      if (mid < 60) u += 1;
+      else if (mid < 90) u += 2;
+      else u += 3;
+    }
+    return u;
+  }
+
+  var EXTRA = {
+    E020C: 4, E010C: 2, E011C: 4, E024C: 4,
+    E022C: 2, E017C: 10, E016C: 20,
+    E009C: 4, E019C: 2, E007C: 1, E018C: 3
+  };
+  var LABEL = {
+    E020C: 'ASA-E emergency', E010C: 'BMI > 40', E011C: 'Prone', E024C: 'Sitting >60°',
+    E022C: 'ASA III', E017C: 'ASA IV', E016C: 'ASA V',
+    E009C: 'Age 29d–1y', E019C: 'Age 1–8y', E007C: 'Age 70–79', E018C: 'Age 80+',
+    E400C: 'Eve/Wknd premium', E401C: 'Night premium'
+  };
+
+  function render() {
+    var lines = [];
+    var codes = [];
+    var pcode = '';
+    if (chosenCode) { pcode = chosenCode.toUpperCase(); }
+    else {
+      var raw = (proc.value || '').trim();
+      var mm = raw.match(/^[A-Za-z]\d{2,3}/);
+      if (mm) pcode = mm[0].toUpperCase();
+    }
+    var mins = parseInt(timeIn.value, 10) || 0;
+    var tU = timeUnits(mins);
+    var totalUnits = BASE_UNITS + tU;
+
+    var baseCode = pcode ? (pcode + 'C') : '(procedure)C';
+    lines.push({ c: baseCode, u: BASE_UNITS + ' base' + (tU ? ' + ' + tU + ' time' : '') + ' units', hint: true });
+    if (pcode) codes.push(baseCode);
+
+    var asaCode = ({ '3': 'E022C', '4': 'E017C', '5': 'E016C' })[state.asa];
+    if (asaCode) { lines.push({ c: asaCode, u: LABEL[asaCode] + ' (+' + EXTRA[asaCode] + 'u)' }); codes.push(asaCode); totalUnits += EXTRA[asaCode]; }
+
+    var ageCode = ({ '29d1': 'E009C', '1to8': 'E019C', '70': 'E007C', '80': 'E018C' })[state.age];
+    if (ageCode) { lines.push({ c: ageCode, u: LABEL[ageCode] + ' (+' + EXTRA[ageCode] + 'u)' }); codes.push(ageCode); totalUnits += EXTRA[ageCode]; }
+
+    Object.keys(state.mods).forEach(function (m) {
+      lines.push({ c: m, u: LABEL[m] + ' (+' + EXTRA[m] + 'u)' });
+      codes.push(m); totalUnits += EXTRA[m];
+    });
+
+    if (state.prem) { lines.push({ c: state.prem, u: LABEL[state.prem] }); codes.push(state.prem); }
+
+    var html = lines.map(function (l) {
+      return '<div class="line"><span class="cc">' + l.c + '</span><span class="cu">' + l.u + '</span></div>';
+    }).join('');
+
+    var premMult = state.prem === 'E401C' ? 1.75 : (state.prem === 'E400C' ? 1.50 : 1);
+    var baseEst = totalUnits * UNIT;
+    var est = baseEst * premMult;
+    html += '<div class="line tot"><span>Total units</span><span>' + totalUnits + 'u  ≈  $' + est.toFixed(2) + '</span></div>';
+    if (state.prem) html += '<div class="warn">Includes the ' + (state.prem === 'E401C' ? '75%' : '50%') + ' premium ($' + baseEst.toFixed(2) + ' base × ' + premMult.toFixed(2) + ').</div>';
+    if (!pcode) html += '<div class="warn">Enter the procedure code to complete the "C" code.</div>';
+
+    out.innerHTML = html;
+    out._codes = codes.join('  ');
+  }
+
+  document.getElementById('c-copy').addEventListener('click', function () {
+    var txt = out._codes || '';
+    var btn = this;
+    function ok() {
+      btn.textContent = 'Copied ✓'; btn.classList.add('done');
+      setTimeout(function () { btn.textContent = 'Copy codes'; btn.classList.remove('done'); }, 1500);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(ok, ok);
+    } else { ok(); }
+  });
+
+  render();
+}
+
+(function () {
+  var STORE_KEY = 'icubill_favs_v1';
+
+  function loadFavs() {
+    try {
+      var raw = window.localStorage.getItem(STORE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return [];
+  }
+  function saveFavs(list) {
+    try { window.localStorage.setItem(STORE_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+
+  function init() {
+    buildDom();
+
+    var q = document.getElementById('q');
+    var headerEl = document.querySelector('header');
+    function setHeaderOffset() {
+      if (!headerEl) return;
+      var h = headerEl.getBoundingClientRect().height;
+      document.documentElement.style.setProperty('--hoff', (h + 10) + 'px');
+    }
+    setHeaderOffset();
+    window.addEventListener('resize', setHeaderOffset);
+    window.addEventListener('orientationchange', setHeaderOffset);
+    document.querySelectorAll('.navchip').forEach(function (a) {
+      a.addEventListener('click', function () { setTimeout(setHeaderOffset, 0); });
+    });
+
+    var nav = document.getElementById('nav');
+    var noresult = document.getElementById('noresult');
+    var favRows = document.getElementById('fav-rows');
+    var favEmpty = document.getElementById('fav-empty');
+
+    var favs = loadFavs();
+
+    function sourceRowFor(code) {
+      return document.querySelector('#content > section:not(#favourites) .row[data-fk="' + code + '"]');
+    }
+
+    function renderFavs() {
+      Array.prototype.slice.call(favRows.querySelectorAll('.row, .info-panel')).forEach(function (r) { r.remove(); });
+      favEmpty.style.display = favs.length ? 'none' : '';
+      favs.forEach(function (code) {
+        var src = sourceRowFor(code);
+        if (!src) return;
+        var clone = src.cloneNode(true);
+        clone.classList.remove('srch');
+        clone.classList.remove('hidden');
+        var st = clone.querySelector('.star');
+        if (st) { st.classList.add('on'); st.textContent = '★'; }
+        favRows.appendChild(clone);
+        var srcPanel = src.nextElementSibling;
+        if (srcPanel && srcPanel.classList.contains('info-panel')) {
+          var panelClone = srcPanel.cloneNode(true);
+          panelClone.classList.remove('open', 'hidden');
+          favRows.appendChild(panelClone);
+        }
+      });
+      var clearBtn = document.getElementById('fav-clear');
+      if (clearBtn) clearBtn.classList.toggle('hidden', !favs.length);
+    }
+
+    function isFav(code) { return favs.indexOf(code) !== -1; }
+
+    function setStarState(code, on) {
+      var stars = document.querySelectorAll('.star[data-fav="' + code + '"]');
+      Array.prototype.slice.call(stars).forEach(function (s) {
+        s.classList.toggle('on', on);
+        s.textContent = on ? '★' : '☆';
+      });
+    }
+
+    function toggleFav(code) {
+      var i = favs.indexOf(code);
+      if (i === -1) favs.push(code); else favs.splice(i, 1);
+      saveFavs(favs);
+      setStarState(code, isFav(code));
+      renderFavs();
+    }
+
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && t.classList && t.classList.contains('star')) {
+        e.preventDefault();
+        var code = t.getAttribute('data-fav');
+        if (code) toggleFav(code);
+        return;
+      }
+      if (t && t.classList && t.classList.contains('info-btn')) {
+        e.preventDefault();
+        var row = t.closest('.row');
+        var panel = row ? row.nextElementSibling : null;
+        if (panel && panel.classList.contains('info-panel')) {
+          var open = panel.classList.toggle('open');
+          t.classList.toggle('open', open);
+        }
+        return;
+      }
+    });
+
+    initSpecialtyToggle(function () {
+      favs.forEach(function (code) { setStarState(code, true); });
+      renderFavs();
+      setTimeout(setHeaderOffset, 0);
+    });
+    initSedationCalc();
+
+    favs.forEach(function (code) { setStarState(code, true); });
+    renderFavs();
+
+    var favClearBtn = document.getElementById('fav-clear');
+    if (favClearBtn) favClearBtn.addEventListener('click', function () {
+      if (!favs.length) return;
+      if (!confirm('Remove all ' + favs.length + ' favourites?')) return;
+      favs.slice().forEach(function (code) { setStarState(code, false); });
+      favs.length = 0;
+      saveFavs(favs);
+      renderFavs();
+    });
+
+    // ---- Search (re-queries sections live, so it respects the current specialty tab) ----
+    function run() {
+      var sections = Array.prototype.slice.call(document.querySelectorAll('#content > section'));
+      var t = (q.value || '').trim().toLowerCase();
+      if (!t) {
+        document.body.classList.remove('searching');
+        document.querySelectorAll('.row').forEach(function (r) { r.classList.remove('hidden'); });
+        document.querySelectorAll('.info-panel').forEach(function (p) { p.classList.remove('hidden'); });
+        sections.forEach(function (s) { s.classList.remove('hidden'); });
+        document.querySelectorAll('.sub, .note, .info').forEach(function (s) { s.classList.remove('hidden'); });
+        if (nav) nav.classList.remove('hidden');
+        if (noresult) noresult.classList.add('hidden');
+        return;
+      }
+      document.body.classList.add('searching');
+      if (nav) nav.classList.add('hidden');
+      var anyGlobal = false;
+      sections.forEach(function (sec) {
+        var any = false;
+        sec.querySelectorAll('.row').forEach(function (r) {
+          var code = r.getAttribute('data-code') || '';
+          var desc = r.getAttribute('data-desc') || '';
+          var hit = code.indexOf(t) !== -1 || desc.indexOf(t) !== -1;
+          r.classList.toggle('hidden', !hit);
+          var panel = r.nextElementSibling;
+          if (panel && panel.classList.contains('info-panel')) {
+            panel.classList.toggle('hidden', !hit);
+          }
+          if (hit) any = true;
+        });
+        sec.querySelectorAll('.sub, .note, .info').forEach(function (s) { s.classList.add('hidden'); });
+        if (sec.id === 'favourites') { sec.classList.add('hidden'); return; }
+        sec.classList.toggle('hidden', !any);
+        if (any) anyGlobal = true;
+      });
+      if (noresult) noresult.classList.toggle('hidden', anyGlobal);
+    }
+    q.addEventListener('input', run);
+    q.addEventListener('keyup', run);
+    q.addEventListener('search', run);
+
+    var fr = document.getElementById('forcerefresh');
+    if (fr) fr.addEventListener('click', function (e) {
+      e.preventDefault();
+      fr.classList.add('checking'); fr.textContent = 'Checking…';
+      checkForUpdate(true);
+      setTimeout(function () {
+        if (fr.classList.contains('checking')) { fr.classList.remove('checking'); fr.textContent = '↻ Check for update'; }
+      }, 4000);
+    });
+  }
+
+  // ---------- Auto-update check ----------
+  var LOCAL_VERSION = '2026-08-06a';
+  function checkForUpdate(force) {
+    try {
+      var url = 'version.txt?ts=' + Date.now();
+      fetch(url, { cache: 'no-store' }).then(function (r) {
+        if (!r.ok) return; return r.text();
+      }).then(function (txt) {
+        if (!txt) return;
+        var remote = txt.trim();
+        if (remote && remote !== LOCAL_VERSION) {
+          if (force) { hardReload(); return; }
+          showUpdateBar(remote);
+        } else if (force) {
+          var b = document.getElementById('forcerefresh');
+          if (b) {
+            b.classList.remove('checking'); b.classList.add('done');
+            b.textContent = 'Up to date ✓';
+            setTimeout(function () { b.classList.remove('done'); b.textContent = '↻ Check for update'; }, 1600);
+          }
+        }
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  function hardReload() {
+    var u = location.pathname + '?v=' + Date.now();
+    location.replace(u);
+  }
+  function showUpdateBar(remote) {
+    if (document.getElementById('updbar')) return;
+    var bar = document.createElement('div');
+    bar.id = 'updbar';
+    bar.innerHTML = 'A newer version (' + remote + ') is available. ' +
+      '<button type="button" id="updbtn">Update now</button>';
+    document.body.appendChild(bar);
+    document.getElementById('updbtn').addEventListener('click', hardReload);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+  setTimeout(function () { checkForUpdate(false); }, 800);
+})();
+</script>
+</body></html>
